@@ -3,9 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <title>Video Player</title>
+    <link rel="stylesheet" type="text/css"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
 </head>
 <body>
+<h1>Velkommen!</h1>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 bearVideo"></div>
+        <div class="col-md-6 snowVideo"></div>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 snowVideo"></div>
+    </div>
+</div>
+
+<script>
+    var videoPlayerSnow = $('.snowVideo').videoPlayer(),
+        videoPlayerBear = $('.bearVideo').videoPlayer();
+    videoPlayerSnow.openVideo("videos/snow.mp4");
+    videoPlayerBear.openVideo("videos/bear.mp4");
+</script>
 
 </body>
 </html>
