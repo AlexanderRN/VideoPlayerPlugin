@@ -5,30 +5,83 @@
     <title>Video Player</title>
     <link rel="stylesheet" type="text/css"
           href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/index.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
     <script src="../assets/js/app.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
 </head>
 <body>
-<h1>Velkommen!</h1>
 <div class="container">
-    <div class="row">
-        <div class="col-md-6 bearVideo"></div>
-        <div class="col-md-6 snowVideo"></div>
-    </div>
+    <h1>Welcome!</h1>
 </div>
 <div class="container">
     <div class="row">
-        <div class="col-md-6 snowVideo"></div>
+        <div class="col-md-6 bearVideo"></div>
+        <div class="col-md-6 jelliesVideo"></div>
+    </div>
+</div>
+<div class="container">
+    <div class="row" id="playlistContainer">
+        <div class="col-md-9 videos"></div>
+        <div class="col-md-3 playlist">
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div id="plugin2" class="col-md-12">
+
+        </div>
     </div>
 </div>
 
 <script>
-    var videoPlayerSnow = $('.snowVideo').videoPlayer(),
-        videoPlayerBear = $('.bearVideo').videoPlayer();
-    videoPlayerSnow.openVideo("videos/snow.mp4");
-    videoPlayerBear.openVideo("videos/bear.mp4");
+    /**
+     * Single source = src: {'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png'}
+     * Multiple source = src: [{'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png'},{'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png'}]
+     */
+
+    $('.bearVideo').videoPlayer({
+        data: {
+            src: {'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png'},
+            controls: "play,progress,time,volume,fullscreen"
+        }
+    });
+    $('.jelliesVideo').videoPlayer({
+        data: {
+            src: {'path': 'videos/jellies.mp4', 'thumb':''},
+            controls: "play,progress,time,volume,fullscreen,subtitle",
+            subtitles: 'videos/jellies.srt'
+        }
+    });
+    $('.videos').videoPlayer({
+        data: {
+            src: [{'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png', 'title':'Bear'},
+                {'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png', 'title':'Bear'},
+                {'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png', 'title':'Bear'},
+                {'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png', 'title':'Bear'},
+                {'path': 'videos/bear.mp4', 'thumb': 'videos/bear.png', 'title':'Bear'}],
+            controls: "play,progress,time,volume,fullscreen",
+            playlistCont: '.playlist'
+        }
+    });
+
+    /*
+     var videoPlayerYT = $('.ytVideo').videoPlayer(),
+     videoPlayerBear = $('.bearVideo').videoPlayer(),
+     videoPlayerPlaylist = $('#playlistContainer').videoPlayer(),
+     videos = [{"path": "videos/snow.mp4", "thumb": "videos/snow.png"}, {
+     "path": "videos/bear.mp4",
+     "thumb": "videos/bear.png"
+     }];
+
+     videoPlayerBear.openLocalVideo("videos/bear.mp4");
+     videoPlayerYT.openExternalVideo("https://www.youtube.com/embed/K2p84Xdx8ck");
+
+     videoPlayerPlaylist.createPlaylist(videos, '.video', '.playlist');
+     */
 </script>
 
 </body>
