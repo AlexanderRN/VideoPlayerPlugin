@@ -96,7 +96,10 @@
         timeTooltip: '.time-tooltip',
         openPlaylist: '.openPlaylist',
         playlist: '.overlayPlaylist',
-        volumeValue: '.volume-value'
+        volumeValue: '.volume-value',
+        buffer: '.bufferBar',
+        btnCenterPlay: '.playCenter',
+        playContainer: '.playCont'
       };
 
       $.each(elements, function(key, selector) {
@@ -107,6 +110,7 @@
     videoTpl: '<video class="video-player embed-responsive-item" width="100%" height="100%"><source src="" type="video/mp4"><track kind="subtitles" label="English subtitles" src="" default></track></video>',
     extVideoTpl: '<iframe class="video-player" width="555" height="312" src="" frameborder="0" allowfullscreen></iframe>',
     volumeTpl: '<div class="volume-value"></div>',
+    playCenterTpl: '<div class="playCont"><button class="playCenter glyphicon glyphicon-play"></button></div>',
 
     render: function() {
       var $video,
@@ -121,6 +125,7 @@
 
           this.$el.html($video).append(this.createControls());
           $(this.options.$el).append(this.volumeTpl);
+          $(this.options.$el).append(this.playCenterTpl);
         } else {
           $video = $(this.extVideoTpl);
 
@@ -143,6 +148,7 @@
           this.$el.html($video).append(this.createControls());
           $(this.options.$el).append(overlay);
           $(this.options.$el).append(this.volumeTpl);
+          $(this.options.$el).append(this.playCenterTpl);
           $(this.options.$el).append(overlayPlaylist);
         }
 
@@ -164,14 +170,15 @@
           $video.attr("poster", src);
           self.$elements.playlist.css({'width': '0%'});
           self.resetPlayer();
+          self.video.play();
+          self.$elements.btnPlay.removeClass('glyphicon-play');
+          self.$elements.btnPlay.addClass('glyphicon-pause');
         });
 
 
       } else {
         alert('There was an error with the options');
       }
-      // videoObj = el.find('video');
-      // video = videoObj.get(0);
     },
 
     isLocal: function(path) {
@@ -194,13 +201,13 @@
             '<span class="current"></span> / ' +
             '<span class="duration"></span>' +
             '</div>' +
+            '<div class="volumeBar">' +
+            '<div class="volume"></div>' +
+            '</div>' +
+            '<button class="muted glyphicon glyphicon-volume-up" ></button>' +
             '<div class="progressBar">' +
             '<div class="bufferBar"></div>' +
             '<div class="timeBar"></div>' +
-            '</div>' +
-            '<button class="muted glyphicon glyphicon-volume-up" ></button>' +
-            '<div class="volumeBar">' +
-            '<div class="volume"></div>' +
             '</div>' +
             '</div>';
 
@@ -228,10 +235,10 @@
         }
         if ($.inArray('volume', optionArray) >= 0) {
           controls +=
-              '<button class="muted glyphicon glyphicon-volume-up" ></button>' +
               '<div class="volumeBar">' +
               '<div class="volume"></div>' +
-              '</div>'
+              '</div>' +
+              '<button class="muted glyphicon glyphicon-volume-up" ></button>'
         }
         if ($.inArray('subtitle', optionArray) >= 0) {
           controls +=
@@ -322,6 +329,17 @@
 
       });
 
+      var running = false;
+      $(this.$elements.playContainer).on('click', function() {
+        if(!running) {
+          if (!self.video.paused) {
+            self.video.pause();
+            self.$elements.btnPlay.toggleClass('glyphicon glyphicon-play glyphicon glyphicon-pause');
+          }
+        }
+        running = false;
+      });
+
       $(self.video).on('loadedmetadata', function() {
         self.$elements.currentTime.text("0:00");
         self.$elements.duration.text(self.calculateTime(Math.round(self.video.duration)));
@@ -332,10 +350,17 @@
         self.$elements.btnPlay.addClass('glyphicon-repeat');
       });
 
+      $(self.video).on('pause', function() {
+        self.$elements.btnCenterPlay.css('visibility', 'visible');
+      });
+
       $(self.video).on('timeupdate', function() {
-        var currentPos = self.video.currentTime; //Get currenttime
-        var maxduration = self.video.duration; //Get video duration
-        var percentage = 100 * currentPos / maxduration; //in %
+        var currentPos = self.video.currentTime,
+            maxduration = self.video.duration,
+            percentage = 100 * currentPos / maxduration;
+
+        self.startBuffer();
+
         $(self.$elements.timeBar).css('width', percentage + '%');
         $(self.$elements.currentTime).text(self.calculateTime(Math.round(self.video.currentTime)));
       });
@@ -344,8 +369,13 @@
         self.playPause(this);
       });
 
+      $(this.$elements.btnCenterPlay).on('click', function() {
+        running = true;
+        self.playPause(self.$elements.btnPlay);
+      });
+
       var current = 0;
-      $(self.video).on('mousewheel', function(e) {
+      $(this.$elements.playContainer).on('mousewheel', function(e) {
         // Calculate how far percentage there has been scrolled.
         e = window.event || e;
         var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
@@ -375,7 +405,7 @@
         clearTimeout($.data(this, 'timer'));
         $.data(this, 'timer', setTimeout(function() {
           self.$elements.volumeValue.css('display', 'none');
-        }, 250));
+        }, 500));
 
         e.preventDefault();
       });
@@ -442,6 +472,18 @@
       });
     },
 
+    startBuffer: function() {
+      var maxduration = this.video.duration,
+          currentBuffer = this.video.buffered.end(0),
+          percentage = 100 * currentBuffer / maxduration;
+
+      this.$elements.buffer.css('width', percentage + '%');
+
+      if (currentBuffer < maxduration) {
+        setTimeout(this.startBuffer, 500);
+      }
+    },
+
     resetPlayer: function() {
       this.$elements.timeBar.css({'width': '0%'});
       this.$elements.currentTime.text('0:00');
@@ -469,6 +511,7 @@
     },
 
     playPause: function(btn) {
+      this.$elements.btnCenterPlay.css('visibility', 'hidden');
       if ($(btn).hasClass('glyphicon glyphicon-repeat')) {
         $(btn).removeClass('glyphicon glyphicon-repeat');
         $(btn).addClass('glyphicon glyphicon-play');
