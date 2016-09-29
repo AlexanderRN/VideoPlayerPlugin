@@ -1,90 +1,54 @@
 (function($) {
   /**
    *
-   * @param element - The chosen element to work with
-   * @param options - The options to use
-   * @constructor
+   * @param options - user input
+   * @constructor of video player
    */
   var VideoPlayer = function(options) {
-
     this.options = $.extend(true, {}, this.defaults, options);
     this.$el = this.options.$el;
     this.$elements = {};
 
-    var elem = $(options.$el),
-        obj = this,
-        videoObj,
-        video,
-        settings = $.extend({
-          param: 'defaultValue'
-        }, options || {});
-
     this.init();
-
-    this.createPlaylist = function(videos, videoContainer, playlistContainer) {
-      var videos = videos,
-          i = 1;
-
-      this.init('playlist', videoContainer);
-
-      $.each(videos, function(index, value) {
-        var thumbnail = '<li class="playlist-item"><a><img src="' + value.thumb + '" alt="No Thumbnail" height="100%" width="100%"></a></li>';
-        elem.find(playlistContainer).find("#playlist").append(thumbnail);
-      });
-
-      elem.find(videoContainer).find('video').attr("src", videos[0].path);
-      elem.find(videoContainer).find('video').attr("poster", videos[0].thumb);
-
-
-      $("ul li a img").on('click', function() {
-        var src = $(this).attr('src'),
-            srcArray = src.split('.');
-
-        elem.find(videoContainer).find('video').attr("src", srcArray[0] + ".mp4");
-        elem.find(videoContainer).find('video').attr("poster", src);
-      });
-
-      videoObj.on('ended', function() {
-        var li = elem.find(playlistContainer).find('#playlist li a img'),
-            el = li.get(i),
-            src = $(el).attr('src'),
-            firstLi = li.get(0),
-            srcArray;
-
-        if (li.get(i) == undefined) {
-          console.log(firstLi);
-        } else {
-          srcArray = src.split('.');
-          elem.find(videoContainer).find('video').attr("src", srcArray[0] + ".mp4");
-        }
-
-        video.play();
-        i++;
-      });
-
-    };
-
   };
 
+  /**
+   *
+   * @type {{init: VideoPlayer.init, $: VideoPlayer.$, registerElements: VideoPlayer.registerElements, videoTpl: string, extVideoTpl: string, volumeTpl: string, playCenterTpl: string, render: VideoPlayer.render, isLocal: VideoPlayer.isLocal, createControls: VideoPlayer.createControls, bindControls: VideoPlayer.bindControls, startBuffer: VideoPlayer.startBuffer, resetPlayer: VideoPlayer.resetPlayer, calculateTime: VideoPlayer.calculateTime, playPause: VideoPlayer.playPause, dragTime: VideoPlayer.dragTime, dragVolume: VideoPlayer.dragVolume}}
+   */
   VideoPlayer.prototype = {
 
+    /**
+     * Init function starts rendering, registering elements and binding controls.
+     */
     init: function() {
       this.render();
       this.registerElements();
       this.bindControls();
     },
 
+    /**
+     *
+     * @param selector
+     * @param context
+     * @returns {*|HTMLElement}
+     */
     $: function(selector, context) {
       context = context || this.$el;
 
       return $(selector, context);
     },
 
+    /**
+     * Registers elements and saves them.
+     */
     registerElements: function() {
       var elements = {
         btnPlay: '.btnPlay',
         fullscreen: '.fullscreen',
         videoPlayer: '.video-player',
+        controls: '.video-controls',
+        videoContainer: '.videoContainer',
         currentTime: '.current',
         duration: '.duration',
         timeBar: '.timeBar',
@@ -96,7 +60,11 @@
         timeTooltip: '.time-tooltip',
         openPlaylist: '.openPlaylist',
         playlist: '.overlayPlaylist',
-        volumeValue: '.volume-value'
+        volumeValue: '.volume-value',
+        buffer: '.bufferBar',
+        btnCenterPlay: '.playCenter',
+        playContainer: '.playCont',
+        next: '.next'
       };
 
       $.each(elements, function(key, selector) {
@@ -104,23 +72,39 @@
       }.bind(this));
     },
 
+    // Templates for rendering.
     videoTpl: '<video class="video-player embed-responsive-item" width="100%" height="100%"><source src="" type="video/mp4"><track kind="subtitles" label="English subtitles" src="" default></track></video>',
     extVideoTpl: '<iframe class="video-player" width="555" height="312" src="" frameborder="0" allowfullscreen></iframe>',
     volumeTpl: '<div class="volume-value"></div>',
+    playCenterTpl: '<div class="playCont"><button class="playCenter fa fa-play"></button></div>',
 
+    /**
+     * Render function, created the video player, controls and more.
+     */
     render: function() {
       var $video,
-          container;
+          $wrapper,
+          $videoContainer,
+          $toolbar;
 
       if ($.isPlainObject(this.options.data.src)) {
         if (this.isLocal(this.options.data.src.path)) {
           $video = $(this.videoTpl);
+          $wrapper = $('<div class="wrapper"></div>');
+          $videoContainer = $('<div class="videoContainer"></div>');
+          $toolbar = $('<div class="toolbar"></div>');
 
           $video.attr("src", this.options.data.src.path);
           $video.find('track').attr("src", this.options.data.subtitles);
 
-          this.$el.html($video).append(this.createControls());
-          $(this.options.$el).append(this.volumeTpl);
+          this.$el.append($wrapper);
+          $wrapper.append($videoContainer);
+          $wrapper.append($toolbar);
+
+          $videoContainer.append($video);
+          $videoContainer.append(this.volumeTpl);
+          $videoContainer.append(this.playCenterTpl);
+          $toolbar.append(this.createControls());
         } else {
           $video = $(this.extVideoTpl);
 
@@ -131,55 +115,79 @@
       } else if ($.isArray(this.options.data.src)) {
         var videos = this.options.data.src,
             playlist = '<ul id="playlist" style="list-style: none"></ul>',
-            overlay = '<div class="overlay"><button class="openPlaylist glyphicon glyphicon-list"></button></div>',
+            overlay = '<div class="overlay"><button class="openPlaylist fa fa-list"></button></div>',
+            playlistWrapper = '<div class="playlistWrapper"></div>',
             overlayPlaylist = '<div class="overlayPlaylist"></div>',
             self = this;
 
         if (this.isLocal(this.options.data.src.path)) {
           $video = $(this.videoTpl);
+          $wrapper = $('<div class="wrapper"></div>');
+          $videoContainer = $('<div class="videoContainer"></div>');
+          $toolbar = $('<div class="toolbar"></div>');
 
           $video.attr("src", videos[0].path);
-          $video.attr("poster", videos[0].thumb);
-          this.$el.html($video).append(this.createControls());
-          $(this.options.$el).append(overlay);
-          $(this.options.$el).append(this.volumeTpl);
-          $(this.options.$el).append(overlayPlaylist);
+          //$video.attr("poster", videos[0].thumb); // Commented due to sizing.
+
+          // Appending all elements to the selector.
+          this.$el.append($wrapper);
+          $wrapper.append($videoContainer);
+          $wrapper.append($toolbar);
+
+          $videoContainer.append($video);
+          $videoContainer.append(this.volumeTpl);
+          $videoContainer.append(this.playCenterTpl);
+          $toolbar.append(this.createControls());
+          $videoContainer.append(overlay);
+          $videoContainer.append(playlistWrapper);
+          $videoContainer.find('.playlistWrapper').append(overlayPlaylist);
         }
 
-        $(this.options.$el).find('.overlayPlaylist').append(playlist);
+        $videoContainer.find('.overlayPlaylist').append(playlist);
 
         $.each(videos, function(index, value) {
-          if (index == 0) {
-            return;
-          }
-          var thumbnail = '<li class="playlist-item"><a>' + value.title + '<img src="' + value.thumb + '" alt="No Thumbnail" height="100%" width="100%"></a></li>';
+          /*if (index == 0) {
+           return;
+           }*/
+          var thumbnail = '<li class="playlist-item"><a><img src="' + value.thumb + '" alt="No Thumbnail" height="100%" width="50%"></a><p id="title"> ' + value.title + '</p><p id="description"> ' + value.description + '</p></li>';
           $(self.options.$el).find('#playlist').append(thumbnail);
         });
 
-        $("ul li a img").on('click', function() {
-          var src = $(this).attr('src'),
+        $("ul li").on('click', function() {
+          var src = $(this).find('img').attr('src'),
               srcArray = src.split('.');
 
+          self.$elements.btnCenterPlay.css('visibility', 'hidden');
           $video.attr("src", srcArray[0] + ".mp4");
           $video.attr("poster", src);
           self.$elements.playlist.css({'width': '0%'});
           self.resetPlayer();
+          self.video.play();
+          self.$elements.btnPlay.removeClass('fa-play');
+          self.$elements.btnPlay.addClass('fa-pause');
         });
 
-
+        // Fallback if options does not fit the terms.
       } else {
         alert('There was an error with the options');
       }
-      // videoObj = el.find('video');
-      // video = videoObj.get(0);
     },
 
+    /**
+     * Checks if video is local or http/external.
+     * @param path of video (http or local path)
+     * @returns {boolean} - returns true if local
+     */
     isLocal: function(path) {
       var r = new RegExp('^(?:[a-z]+:)?//', 'i');
 
       return !r.test(path);
     },
 
+    /**
+     * Creates the controls depending on the user inpt from options.
+     * @returns a collected html of controls.
+     */
     createControls: function() {
       var controls,
           optionInput = this.options.data.controls,
@@ -188,54 +196,58 @@
 
       if (optionInput == null || optionInput == '') {
         controls = '<div class="video-controls">' +
-            '<button class="btnPlay glyphicon glyphicon-play"></button>' +
-            '<button class="fullscreen glyphicon glyphicon-fullscreen"></button>' +
-            '<div class="progressTime">' +
-            '<span class="current"></span> / ' +
-            '<span class="duration"></span>' +
-            '</div>' +
             '<div class="progressBar">' +
             '<div class="bufferBar"></div>' +
             '<div class="timeBar"></div>' +
             '</div>' +
-            '<button class="muted glyphicon glyphicon-volume-up" ></button>' +
+            '<button class="btnPlay fa fa-play"></button>' +
+            '<button class="fullscreen fa fa-fullscreen"></button>' +
+            '<div class="progressTime">' +
+            '<span class="current"></span> / ' +
+            '<span class="duration"></span>' +
+            '</div>' +
             '<div class="volumeBar">' +
             '<div class="volume"></div>' +
             '</div>' +
+            '<button class="muted fa fa-volume-up" ></button>' +
             '</div>';
 
       } else {
         controls = '<div class="video-controls">';
 
-        if ($.inArray('play', optionArray) >= 0) {
-          controls += '<button class="btnPlay glyphicon glyphicon-play"></button>';
-        }
-        if ($.inArray('fullscreen', optionArray) >= 0) {
-          controls += '<button class="fullscreen glyphicon glyphicon-fullscreen"></button>';
-        }
         if ($.inArray('progress', optionArray) >= 0) {
-          controls += '<div class="progressTime">' +
-              '<span class="current"></span> / ' +
-              '<span class="duration"></span>' +
-              '</div>'
-        }
-        if ($.inArray('time', optionArray) >= 0) {
           controls += '<div class="progressBar">' +
               '<div class="bufferBar"></div>' +
               '<div class="timeBar"></div>' +
               '<div class="time-tooltip">00:00</div>' +
               '</div>'
         }
+        if ($.inArray('play', optionArray) >= 0) {
+          controls += '<button class="btnPlay fa fa-play"></button>';
+        }
+        if ($.inArray('fullscreen', optionArray) >= 0) {
+          controls += '<button class="fullscreen fa fa-expand"></button>';
+        }
+        if ($.inArray('next', optionArray) >= 0 && $.isArray(this.options.data.src)) {
+          controls +=
+              '<button class="next fa fa-step-forward"></button>'
+        }
+        if ($.inArray('time', optionArray) >= 0) {
+          controls += '<div class="progressTime">' +
+              '<span class="current"></span> / ' +
+              '<span class="duration"></span>' +
+              '</div>'
+        }
         if ($.inArray('volume', optionArray) >= 0) {
           controls +=
-              '<button class="muted glyphicon glyphicon-volume-up" ></button>' +
               '<div class="volumeBar">' +
               '<div class="volume"></div>' +
-              '</div>'
+              '</div>' +
+              '<button class="muted fa fa-volume-up" ></button>'
         }
         if ($.inArray('subtitle', optionArray) >= 0) {
           controls +=
-              '<button class="subtitle glyphicon glyphicon-subtitles" ></button>'
+              '<button class="subtitle fa fa-cc" ></button>'
         }
 
       }
@@ -243,12 +255,29 @@
       return controls;
     },
 
+    /**
+     * Binds all actions to the controls
+     */
     bindControls: function() {
       var self = this;
 
       this.video = self.$elements.videoPlayer.get(0);
 
       this.dragTime();
+      this.dragVolume();
+
+      $(this.$elements.videoContainer).on('mouseenter', function() {
+        $(self.$elements.controls).css('visibility', 'visible');
+        $(self.$elements.openPlaylist).css('visibility', 'visible');
+      });
+
+      $(this.$el).on('mouseleave', function() {
+        if (!self.video.paused) {
+          $(self.$elements.controls).css('visibility', 'hidden');
+          $(self.$elements.openPlaylist).css('visibility', 'hidden');
+          $(self.$elements.playlist).css('width', '0%');
+        }
+      });
 
       $(this.$elements.progressBar).on('click', function(e) {
         var x = e.pageX,
@@ -256,6 +285,7 @@
             maxduration = self.video.duration, //Video duraiton
             position = x - progress.offset().left, //Click pos
             percentage = 100 * position / progress.width();
+
 
         //Check within range
         if (percentage > 100) {
@@ -275,36 +305,16 @@
         }
       });
 
-      $(this.$elements.volumeBar).on('mousedown', function(e) {
-        var x = e.pageX,
-            volumeBar = $(this),
-            volume = $(this).find('.volume'),
-            position = x - volumeBar.offset().left,
-            percentage = 100 * position / volumeBar.width();
-
-        if (self.video.muted) {
-          // Move method into seperate function so I can call it.
-          self.video.muted = false;
-        }
-
-
-        $(self.$elements.volume).css('width', percentage + '%');
-        self.video.volume = percentage / 100;
-      });
-
       $(this.$elements.fullscreen).on('click', function() {
         //For Webkit
 
         self.video.webkitRequestFullscreen();
 
-        //For Firefox
-        //video.mozRequestFullScreen();
-
         return false;
       });
 
       $(this.$elements.muted).on('click', function() {
-        $(this).toggleClass('glyphicon glyphicon-volume-up glyphicon glyphicon-volume-off');
+        $(this).toggleClass('fa fa-volume-up fa fa-volume-off');
 
         if (!self.video.muted) {
           $(self.$elements.volume).css('width', 0);
@@ -318,8 +328,20 @@
         }
       });
 
+      // TODO Remove or implement subtitles, currently not a supported feature.
       $(this.$elements.subtitle).on('click', function() {
 
+      });
+
+      var running = false;
+      $(this.$elements.playContainer).on('click', function() {
+        if (!running) {
+          if (!self.video.paused) {
+            self.video.pause();
+            self.$elements.btnPlay.toggleClass('fa fa-play fa fa-pause');
+          }
+        }
+        running = false;
       });
 
       $(self.video).on('loadedmetadata', function() {
@@ -328,14 +350,21 @@
       });
 
       $(self.video).on('ended', function() {
-        self.$elements.btnPlay.removeClass('glyphicon-pause');
-        self.$elements.btnPlay.addClass('glyphicon-repeat');
+        self.$elements.btnPlay.toggleClass('fa-pause fa-repeat');
+        self.$elements.btnCenterPlay.toggleClass('fa-play fa-repeat');
+      });
+
+      $(self.video).on('pause', function() {
+        self.$elements.btnCenterPlay.css('visibility', 'visible');
       });
 
       $(self.video).on('timeupdate', function() {
-        var currentPos = self.video.currentTime; //Get currenttime
-        var maxduration = self.video.duration; //Get video duration
-        var percentage = 100 * currentPos / maxduration; //in %
+        var currentPos = self.video.currentTime,
+            maxduration = self.video.duration,
+            percentage = 100 * currentPos / maxduration;
+
+        self.startBuffer();
+
         $(self.$elements.timeBar).css('width', percentage + '%');
         $(self.$elements.currentTime).text(self.calculateTime(Math.round(self.video.currentTime)));
       });
@@ -344,8 +373,34 @@
         self.playPause(this);
       });
 
+      var i = 1;
+      $(this.$elements.next).on('click', function() {
+        var list = $(self.$el).find('#playlist li'),
+            listElem = list.get(i),
+            src = $(listElem).find('img').attr('src'),
+            srcArray;
+
+        if (!listElem) {
+          i = 0;
+        } else {
+          srcArray = src.split('.');
+          $(self.video).attr("src", srcArray[0] + ".mp4");
+          self.$elements.btnCenterPlay.css('visibility', 'hidden');
+          self.$elements.btnPlay.removeClass('glyphicon-repeat');
+          self.$elements.btnPlay.addClass('glyphicon-pause');
+          self.video.play();
+          i++;
+        }
+
+      });
+
+      $(this.$elements.btnCenterPlay).on('click', function() {
+        running = true;
+        self.playPause(self.$elements.btnPlay);
+      });
+
       var current = 0;
-      $(self.video).on('mousewheel', function(e) {
+      $(this.$elements.playContainer).on('mousewheel', function(e) {
         // Calculate how far percentage there has been scrolled.
         e = window.event || e;
         var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
@@ -364,18 +419,18 @@
 
         self.$elements.volumeValue.css('display', 'block');
         if (current == 0) {
-          self.$elements.volumeValue.html('<span class="glyphicon glyphicon-volume-off"></span>' + current + '%');
+          self.$elements.volumeValue.html('<span class="fa fa-volume-off"></span>' + current + '%');
         } else if (current >= 1 && current <= 50) {
-          self.$elements.volumeValue.html('<span class="glyphicon glyphicon-volume-down"></span>' + current + '%');
+          self.$elements.volumeValue.html('<span class="fa fa-volume-down"></span>' + current + '%');
         } else {
-          self.$elements.volumeValue.html('<span class="glyphicon glyphicon-volume-up"></span>' + current + '%');
+          self.$elements.volumeValue.html('<span class="fa fa-volume-up"></span>' + current + '%');
         }
 
 
         clearTimeout($.data(this, 'timer'));
         $.data(this, 'timer', setTimeout(function() {
           self.$elements.volumeValue.css('display', 'none');
-        }, 250));
+        }, 500));
 
         e.preventDefault();
       });
@@ -420,28 +475,48 @@
         }
       });
 
-      var i = 1;
+      var j = 1;
       $(self.video).on('ended', function() {
-        var li = $(this.$el).find('#playlist li a img'),
-            el = li.get(i),
-            src = $(el).attr('src'),
-            firstLi = li.get(0),
+        var list = $(self.$el).find('#playlist li'),
+            listElem = list.get(j),
+            src = $(listElem).find('img').attr('src'),
             srcArray;
 
-        if (li.get(i) == undefined) {
-          // console.log(firstLi);
+        console.log(listElem);
+
+        if (!listElem) {
+          j = 0;
         } else {
           srcArray = src.split('.');
-          self.video.attr("src", srcArray[0] + ".mp4");
+          $(self.video).attr("src", srcArray[0] + ".mp4");
+          self.$elements.btnCenterPlay.css('visibility', 'hidden');
+          self.$elements.btnPlay.removeClass('glyphicon-repeat');
+          self.$elements.btnPlay.addClass('glyphicon-pause');
+          self.video.play();
+          j++;
         }
 
-        self.$elements.btnPlay.removeClass('glyphicon-repeat');
-        self.$elements.btnPlay.addClass('glyphicon-pause');
-        self.video.play();
-        i++;
       });
     },
 
+    /**
+     * Starts buffering the player and loads the file.
+     */
+    startBuffer: function() {
+      var maxduration = this.video.duration,
+          currentBuffer = this.video.buffered.end(0),
+          percentage = 100 * currentBuffer / maxduration;
+
+      this.$elements.buffer.css('width', percentage + '%');
+
+      if (currentBuffer < maxduration) {
+        setTimeout(this.startBuffer, 500);
+      }
+    },
+
+    /**
+     * Resets the video player to initial state
+     */
     resetPlayer: function() {
       this.$elements.timeBar.css({'width': '0%'});
       this.$elements.currentTime.text('0:00');
@@ -450,6 +525,11 @@
       this.$elements.btnPlay.addClass('glyphicon-play');
     },
 
+    /**
+     * Calculates time in minutes/seconds from the parameter time, and returns it as a string.
+     * @param time
+     * @returns {string}
+     */
     calculateTime: function(time) {
       var seconds = 0,
           minutes = 0;
@@ -468,26 +548,35 @@
       return minutes + ":" + seconds;
     },
 
+    /**
+     * Plays or pauses the video, takes the play-button as paramater.
+     * @param btn
+     * @returns {boolean}
+     */
     playPause: function(btn) {
-      if ($(btn).hasClass('glyphicon glyphicon-repeat')) {
-        $(btn).removeClass('glyphicon glyphicon-repeat');
-        $(btn).addClass('glyphicon glyphicon-play');
+      this.$elements.btnCenterPlay.css('visibility', 'hidden');
+      if ($(btn).hasClass('fa fa-repeat')) {
+        $(btn).removeClass('fa fa-repeat');
+        $(btn).addClass('fa fa-play');
       }
-      $(btn).toggleClass('glyphicon glyphicon-play glyphicon glyphicon-pause');
+      if (this.$elements.btnCenterPlay.hasClass('fa fa-repeat')) {
+        this.$elements.btnCenterPlay.removeClass('fa fa-repeat');
+        this.$elements.btnCenterPlay.addClass('fa fa-play');
+      }
 
-      if ($(btn).hasClass('glyphicon-repeat')) {
-        $(btn).removeClass('glyphicon-repeat');
-        $(btn).addClass('glyphicon-play');
-      }
+      $(btn).toggleClass('fa fa-play fa fa-pause');
+
       if (this.video.paused) {
         this.video.play();
-      }
-      else {
+      } else {
         this.video.pause();
       }
       return false;
     },
 
+    /**
+     * Checks if the user is dragging the video time and changes it.
+     */
     dragTime: function() {
       var timeDrag = false, /* Drag status */
           self = this;
@@ -525,6 +614,64 @@
         //Update progress bar and video currenttime
         self.$elements.timeBar.css('width', percentage + '%');
         self.video.currentTime = maxduration * percentage / 100;
+      };
+    },
+
+    /**
+     * Checks if the user is dragging the video volume and changes it
+     */
+    dragVolume: function() {
+      var volumeDrag = false, /* Drag status */
+          self = this;
+
+      this.$elements.volumeBar.mousedown(function(e) {
+        volumeDrag = true;
+        updatebar(e.pageX);
+      });
+      $(document).mouseup(function(e) {
+        if (volumeDrag) {
+          volumeDrag = false;
+          updatebar(e.pageX);
+        }
+      });
+      $(document).mousemove(function(e) {
+        if (volumeDrag) {
+          updatebar(e.pageX);
+        }
+      });
+
+      var updatebar = function(x) {
+        var volumeBar = self.$elements.volumeBar,
+            volume = self.$elements.volume,
+            position = x - volumeBar.offset().left, //Click pos
+            percentage = 100 * position / volumeBar.width(),
+            current = self.video.volume;
+
+        //Check within range
+        if (percentage > 100) {
+          percentage = 100;
+        }
+        if (percentage < 0) {
+          percentage = 0;
+        }
+
+        //Update progress bar and video currenttime
+        self.$elements.volumeValue.css('display', 'block');
+        if (current * 100 == 0) {
+          self.$elements.volumeValue.html('<span class="fa fa-volume-off"></span>' + Math.round(current * 100) + '%');
+        } else if (current * 100 >= 1 && current * 100 <= 50) {
+          self.$elements.volumeValue.html('<span class="fa fa-volume-down"></span>' + Math.round(current * 100) + '%');
+        } else {
+          self.$elements.volumeValue.html('<span class="fa fa-volume-up"></span>' + Math.round(current * 100) + '%');
+        }
+
+        clearTimeout($.data(this, 'timer'));
+        $.data(this, 'timer', setTimeout(function() {
+          self.$elements.volumeValue.css('display', 'none');
+        }, 500));
+
+        volume.css('width', percentage + '%');
+        self.video.volume = percentage / 100;
       };
     }
   };
