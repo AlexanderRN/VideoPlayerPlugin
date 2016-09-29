@@ -1,14 +1,51 @@
 @import 'mixins';
+@import 'https://fonts.googleapis.com/css?family=Ubuntu&subset=latin-ext';
 
 @grey: #b3b3b3;
 @white: #f0f0f0;
 @empty-margin: 0;
 @font-size: 20px;
 
+
+.wrapper {
+  position: relative;
+}
+
+.videoContainer {
+  position: relative;
+  //padding-bottom: 9/16*100%;
+}
+
 #playlist {
   list-style: none;
   margin-top: 23.5px;
   padding: 0 10px 10px 10px;
+
+  .playlist-item {
+
+    a {
+      margin-left: -70px;
+    }
+
+    img {
+      vertical-align: middle;
+      margin-bottom: 8px;
+    }
+
+    p#title {
+      display: inline;
+      vertical-align: top;
+      color: @white;
+    }
+
+    p#description {
+      display: inline-block;
+      vertical-align: top;
+      font-size: 12px;
+      color: @white;
+    }
+  }
+
 }
 
 #playlistContainer {
@@ -36,24 +73,26 @@ video {
   font-size: 25px;
 
   .playCenter {
-    left: 42%;
-    top: 40%;
     width: 100px;
     height: 60px;
-    background:none;
-    border:none;
-    box-shadow:none;
-    color: #bfbfbf;
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: @white;
     font-size: 40px;
     outline: none;
+    position: absolute;
+    top: 40%;
+    left: 40%;
   }
 }
+
 
 .volume-value {
   display: none;
   position: absolute;
-  left: 45%;
-  top: 40%;
+  top: 2%;
+  left: 2%;
   .width-height-dimension(100px, 60px);
   font-size: 25px;
   color: white;
@@ -70,154 +109,158 @@ video {
   margin-top: 25px;
   z-index: 10;
 }
-.overlayPlaylist {
-  position: absolute;
-  top: @empty-margin;
-  right: @empty-margin;
-  text-align: center;
-  font-size: @font-size;
-  background-color: #2F4F4F;
-  .width-height-dimension(0%, 86.1%);
-  margin-top: 24px;
-  margin-right: 16px;
-  z-index: 2147483647;
-  overflow: auto;
-  .transition(width 2s);
+
+.playlistWrapper {
+  .overlayPlaylist {
+    position: absolute;
+    top: @empty-margin;
+    right: @empty-margin;
+    text-align: center;
+    font-size: @font-size;
+    background-color: #444444;
+    .width-height-dimension(0%, 86.1%);
+    margin-top: 24px;
+    margin-right: 16px;
+    z-index: 2147483647;
+    overflow: auto;
+  }
 }
 
 .openPlaylist {
-margin-top: 5px;
+  //visibility: hidden;
+  margin-top: 20px;
+  color: @white;
+  background: none;
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
-.video-controls {/*
-  -webkit-box-shadow: inset 0px 64px 112px -24px rgba(0,0,0,0.75);
-  -moz-box-shadow: inset 0px 64px 112px -24px rgba(0,0,0,0.75);
-  box-shadow: inset 0px 64px 112px -24px rgba(0,0,0,0.75);*/
-  -webkit-box-shadow: inset 0px -48px 71px -16px rgba(0,0,0,0.46);
-  -moz-box-shadow: inset 0px -48px 71px -16px rgba(0,0,0,0.46);
-  box-shadow: inset 0px -48px 71px -16px rgba(0,0,0,0.46);
-  .width-height-dimension(95%, 30px);
+.toolbar {
   position: absolute;
-  bottom: 0;
-  background-color: transparent;
-  padding: @empty-margin;
-  margin-bottom: -2px;
+  width: 100%;
 
-  &>* {
-   // margin-bottom: 10px;
-    display: inline-block;
-    height: 18px;
-    vertical-align: middle;
-  }
-
-  .btnPlay {
-    color: white;
-    background:none;
-    border:none;
-    box-shadow:none;
-    outline: none;
-  }
-
-  .fullscreen {
-    color: white;
-    background:none;
-    border:none;
-    box-shadow:none;
-    float: right;
-    outline: none;
-  }
-
-  .progressBar {
+  .video-controls {
+    .shadows(inset 0px -48px 71px -16px rgba(0, 0, 0, 0.46));
+    .width-height-dimension(100%, 30px);
     position: absolute;
-    margin-top:5px;
-    .width-height-dimension(100%, 8px);
-    display: block;
-    background-color: @grey;
-    outline: none;
+    bottom: 0;
+    background-color: transparent;
+    padding: @empty-margin;
+    margin-bottom: -2px;
+    font-family: 'Ubuntu', sans-serif;
 
-    &:hover {
-      cursor: pointer;
+    & > * {
+      // margin-bottom: 10px;
+      display: inline-block;
+      height: 18px;
+      vertical-align: middle;
     }
 
-    .time-tooltip {
-      background: @white;
-      display: none;
-      padding: 2px 5px;
-      position: absolute;
-      top: -30px;
-      z-index: 100;
-      &:before {
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 5px solid @white;
-        bottom: -5px;
-        content: '';
-        left: 5px;
-        position: absolute;
+    .btnPlay {
+      .buttonSettings;
+    }
+
+    .fullscreen {
+      .buttonSettings;
+      float: right;
+
+    }
+
+    .progressBar {
+      position: relative;
+      .width-height-dimension(100%, 3px);
+      display: block;
+      background-color: @grey;
+      outline: none;
+
+      &:hover {
+        height: 8px;
+        cursor: pointer;
       }
-    }
 
-    &:hover {
       .time-tooltip {
-        display: block;
+        background: @white;
+        display: none;
+        padding: 2px 5px;
+        position: absolute;
+        top: -30px;
+        z-index: 100;
+        &:before {
+          border-left: 5px solid transparent;
+          border-right: 5px solid transparent;
+          border-top: 5px solid @white;
+          bottom: -5px;
+          content: '';
+          left: 5px;
+          position: absolute;
+        }
+      }
+
+      &:hover {
+        .time-tooltip {
+          display: block;
+        }
       }
     }
-  }
-  .bufferBar {
-    position: absolute;
-    top: @empty-margin;
-    left: @empty-margin;
-    width: @empty-margin;
-    height: 100%;
-    background-color: #909090;
-    z-index: 2;
-    outline: none;
-  }
-
-  .timeBar {
-    position: absolute;
-    z-index: 10;
-    top: @empty-margin;
-    left: @empty-margin;
-    width: @empty-margin;
-    height: 100%;
-    background-color: blue;
-    outline: none;
-  }
-
-  .volumeBar {
-    position: relative;
-    .width-height-dimension(100px, 5px);
-    background-color: @grey;
-    float: right;
-    top: 25%;
-    outline: none;
-
-    &:hover {
-      cursor: pointer;
+    .bufferBar {
+      position: absolute;
+      top: @empty-margin;
+      left: @empty-margin;
+      width: @empty-margin;
+      height: 100%;
+      background-color: #909090;
+      z-index: 2;
+      outline: none;
     }
-  }
 
-  .progressTime {
-    color: white;
-  }
+    .timeBar {
+      position: absolute;
+      z-index: 10;
+      top: @empty-margin;
+      left: @empty-margin;
+      width: @empty-margin;
+      height: 100%;
+      background-color: @white;
+      outline: none;
+    }
 
-  .volume {
-    position: absolute;
-    top: @empty-margin;
-    left: @empty-margin;
-    .width-height-dimension(100%, 5px);
-    background-color: blue;
-    float: right;
-    outline: none;
-  }
+    .volumeBar {
+      margin-top: 8px;
+      position: relative;
+      .width-height-dimension(100px, 5px);
+      background-color: @grey;
+      float: right;
+      outline: none;
 
-  .muted {
-    color: white;
-    background:none;
-    border:none;
-    box-shadow:none;
-    float: right;
-    outline: none;
+      &:hover {
+        cursor: pointer;
+      }
+    }
+
+    .progressTime {
+      color: white;
+    }
+
+    .volume {
+      position: absolute;
+      top: @empty-margin;
+      left: @empty-margin;
+      .width-height-dimension(100%, 5px);
+      background-color: @white;
+      float: right;
+      outline: none;
+    }
+
+    .muted {
+      font-size: 18px;
+      .buttonSettings;
+      float: right;
+    }
+
+    .next {
+      .buttonSettings;
+    }
   }
 }
+
